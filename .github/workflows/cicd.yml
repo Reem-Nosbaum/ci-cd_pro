@@ -67,15 +67,10 @@ jobs:
           git tag ${{ env.VERSION }}
           git push origin ${{ env.VERSION }}
 
-      - name: OWASP Dependency-Check
+      - name: Scan Dockerfile with Trivy
         run: |
-          curl -sSfL https://get.owasp.org/dependency-check | bash -s -- --project "MyProject" --scan . --format "ALL" --out .
-          if grep -q "CRITICAL" dependency-check-report.html; then
-            echo "Critical vulnerabilities found, failing the pipeline."
-            exit 1
-          else
-            echo "No critical vulnerabilities found."
-          fi
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b ./trivy
+          ./trivy fs --exit-code 1 --severity CRITICAL,HIGH ./Dockerfile
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml
