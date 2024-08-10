@@ -1,10 +1,9 @@
-# Use an official OpenJDK image as a parent image
-FROM openjdk:17-jdk-slim AS build
+# Use an old version of OpenJDK with known vulnerabilities
+FROM openjdk:8u111-jdk-alpine as build
 
 # Install Maven 3.9.2
 ENV MAVEN_VERSION=3.9.2
-RUN apt-get update && \
-    apt-get install -y wget && \
+RUN apk add --no-cache wget && \
     wget https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz && \
     tar xzvf apache-maven-$MAVEN_VERSION-bin.tar.gz -C /opt && \
     ln -s /opt/apache-maven-$MAVEN_VERSION/bin/mvn /usr/bin/mvn
@@ -19,8 +18,8 @@ COPY src ./src
 # Build the application
 RUN mvn clean package
 
-# Use an official OpenJDK image to run the application
-FROM openjdk:17-jdk-slim
+# Use the same vulnerable version of OpenJDK to run the application
+FROM openjdk:8u111-jdk-alpine
 
 # Set the working directory
 WORKDIR /app
