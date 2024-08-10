@@ -83,6 +83,16 @@ jobs:
     - name: Push Docker image to Docker Hub
       run: docker push ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
 
+    - name: OWASP Dependency-Check
+      run: |
+        curl -sSfL https://get.owasp.org/dependency-check | bash -s -- --project "MyProject" --scan . --format "ALL" --out .
+        if grep -q "CRITICAL" dependency-check-report.html; then
+          echo "Critical vulnerabilities found, failing the pipeline."
+          exit 1
+        else
+          echo "No critical vulnerabilities found."
+        fi
+
   secret_scanning:
     runs-on: ubuntu-latest
     steps:
