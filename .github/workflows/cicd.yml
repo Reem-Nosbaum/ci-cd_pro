@@ -83,20 +83,6 @@ jobs:
     - name: Push Docker image to Docker Hub
       run: docker push ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
 
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: 3.91.223.233
-        username: ubuntu
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
-          CONTAINER_ID=$(docker ps -q --filter ancestor=${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }})
-          if [ -n "$CONTAINER_ID" ]; then
-            docker stop $CONTAINER_ID
-            docker rm $CONTAINER_ID
-          fi
-          docker run -d -p 80:80 ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
   secret_scanning:
     runs-on: ubuntu-latest
     steps:
