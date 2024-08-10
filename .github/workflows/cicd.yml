@@ -97,3 +97,13 @@ jobs:
             docker rm $CONTAINER_ID
           fi
           docker run -d -p 80:80 ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
+  secret_scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Gitleaks to scan for secrets
+        uses: zricethezav/gitleaks-action@v1.1.0
+        with:
+          args: "--path=./ --verbose --redact"
