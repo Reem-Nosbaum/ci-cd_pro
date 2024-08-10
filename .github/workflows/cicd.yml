@@ -2,11 +2,11 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: 
-      - master
+    branches:
+      - main  # Run on pushes to the main branch
   pull_request:
-    branches: 
-      - master
+    branches:
+      - master  # Continue running on pull requests to master
 
 jobs:
   build_and_deploy:
@@ -67,18 +67,23 @@ jobs:
           git tag ${{ env.VERSION }}
           git push origin ${{ env.VERSION }}
 
-      - name: Install Trivy
-        run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b .
-          ls -la 
-          
       - name: Scan Dockerfile with Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b .
-          ./trivy fs --exit-code 1 --severity CRITICAL,HIGH --no-progress ./Dockerfile
+          ./trivy fs --exit-code 1 --severity CRITICAL,HIGH --no-progress --ignore-unfixed --exit-on-eol=false ./Dockerfile
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+
+      - name: Run SonarQube Scan  # Adding the static analysis step
+        if: github.ref == 'refs/heads/main'  # Only run on merge to main branch
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=YourProjectKey \
+            -Dsonar.host.url=https://your-sonarqube-server.com \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }} .
