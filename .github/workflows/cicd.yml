@@ -70,7 +70,7 @@ jobs:
       - name: Scan Dockerfile with Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b .
-          ./trivy fs --exit-code 1 --severity CRITICAL,HIGH --no-progress --ignore-unfixed --exit-on-eol=false ./Dockerfile
+          ./trivy fs --exit-code 1 --severity CRITICAL,HIGH --no-progress ./Dockerfile
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml
