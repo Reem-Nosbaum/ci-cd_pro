@@ -3,10 +3,10 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main  # Run on pushes to the main branch
+      - main
   pull_request:
     branches:
-      - master  # Continue running on pull requests to master
+      - master
 
 jobs:
   build_and_deploy:
@@ -75,18 +75,21 @@ jobs:
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
-      - name: Run SonarQube Scan
-        if: github.ref == 'refs/heads/main'
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          mvn clean verify sonar:sonar \
-            -Dsonar.projectKey=hello_world \
-            -Dsonar.host.url=http://100.24.56.73:9000 \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
       - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }} .
+
+      - name: Install Cosign
+        run: |
+          curl -LO https://github.com/sigstore/cosign/releases/download/v1.11.0/cosign-linux-amd64
+          chmod +x cosign-linux-amd64
+          sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+
+      - name: Sign Docker image with Cosign
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
+          cosign sign --key cosign.key ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
