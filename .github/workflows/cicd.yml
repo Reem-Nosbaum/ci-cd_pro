@@ -104,8 +104,6 @@ jobs:
           sudo mv cosign-linux-amd64 /usr/local/bin/cosign
 
       - name: Sign Docker image with Cosign
-        env:
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
           echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
           cosign sign --key cosign.key ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
