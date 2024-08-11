@@ -104,9 +104,40 @@ jobs:
           sudo mv cosign-linux-amd64 /usr/local/bin/cosign
 
       - name: Sign Docker image with Cosign
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
           echo "${{ secrets.COSIGN_PRIVATE_KEY }}" > cosign.key
           cosign sign --key cosign.key ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
+
+  verify_and_deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_deploy
+    steps:
+      - name: Install Cosign
+        run: |
+          curl -LO https://github.com/sigstore/cosign/releases/download/v1.11.0/cosign-linux-amd64
+          chmod +x cosign-linux-amd64
+          sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+
+      - name: Verify Docker image with Cosign
+        run: |
+          cosign verify ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }} --key cosign.pub
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: 100.26.146.210
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
+            CONTAINER_ID=$(docker ps -q --filter ancestor=${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }})
+            if [ -n "$CONTAINER_ID" ]; then
+              docker stop $CONTAINER_ID
+              docker rm $CONTAINER_ID
+            fi
+            docker run -d -p 80:80 ${{ secrets.DOCKER_USERNAME }}/simple-java-maven-app:${{ env.VERSION }}
 
   secret_scanning:
     runs-on: ubuntu-latest
